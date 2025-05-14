@@ -1,0 +1,1881 @@
+---
+title: "Untitled"
+output: html_document
+date: '2023-07-10'
+---
+```{r}
+setwd("/Users/samd/OneDrive\ -\ Northwestern\ University/Primate/Scripts")
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Doing deseq2 on primate skin data ..first on subset of data with only antibiotics and lipid synthesis
+
+```{r}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("DESeq2")
+```
+
+```{r}
+setwd("/Users/samd/OneDrive\ -\ Northwestern\ University/Primate/Scripts")
+library(DESeq2)
+library(ggplot2)
+```
+```{r}
+
+cts <- read.table("deseqOTUtable.txt", sep='\t',header=TRUE)
+head(cts)
+
+ctsAgg=aggregate(cts[ , 2:76], by = list(cts$OTUID), FUN = sum)                # Consolidate duplicates
+head(ctsAgg)  
+dim(cts)
+dim(ctsAgg)
+
+ctsMat=as.matrix(ctsAgg)
+head(ctsMat)
+ctsMatm <- ctsMat[,-1]
+rownames(ctsMatm) <- ctsMat[,1]
+head(ctsMatm)
+
+
+f <- file.choose("metadataDeseq.txt")
+meta <- read.table(f, sep="\t",header=TRUE,row.names=1)
+head(meta)
+
+dds <- DESeqDataSetFromMatrix(countData = ctsMatm,
+                              colData = meta,
+                              design= ~ type)
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+res <- results(dds, name="condition_trt_vs_untrt")
+# or to shrink log fold changes association with condition:
+res <- lfcShrink(dds, coef="condition_trt_vs_untrt", type="apeglm")
+
+all(rownames(meta) == colnames(ctsMatm))
+rownames(ctsMatm) <- make.names(names_countdata, unique=TRUE)
+
+ctsMatm <- ctsMat[,-1]
+names_count <- ctsMat[,1]
+rownames(ctsMatm) <- make.names(names_count, unique=TRUE)
+
+ctsMatm <- noquote(ctsMatm)
+ctsMatmI=as.integer(ctsMatm)
+dds <- DESeqDataSetFromMatrix(countData = ctsMatmI,
+                              colData = meta,
+                              design= ~ type)
+ #doesnt work
+ 
+ class(ctsMatm)
+ str(ctsMatm)
+
+ #chooing deseqOTUtable.csv manually with this file.choose code because it isnt working
+ f2=file.choose("deseqOTUtable.csv")
+cts2 <- read.csv(f2,header=TRUE)
+head(cts2)
+
+cts2Agg=aggregate(cts[ , 2:10], by = list(cts2$OTUID), FUN = sum) 
+  
+cts3 <- cts2Agg[,-1]
+names_cts <- cts2Agg[,1]
+rownames(cts3) <- make.names(names_cts, unique=TRUE)
+head(cts3)
+
+dds <- DESeqDataSetFromMatrix(countData = cts3,
+                              colData = meta,
+                              design= ~ type)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+res <- results(dds, name="type_human_vs_chimp")
+# or to shrink log fold changes association with condition:
+res <- lfcShrink(dds, coef="condition_trt_vs_untrt", type="apeglm")
+
+humanVg=results(dds, contrast=c("type","human","gorilla"))
+res2=humanVg[order(-humanVg$padj), "Number", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2resultsHumanVg2.csv")
+
+
+ctsG <- read.csv("DeseqGenusTable.csv", sep=',',header=TRUE)
+head(ctsG)
+
+#cts2Agg=aggregate(cts[ , 2:10], by = list(cts2$OTUID), FUN = sum) 
+  
+ctsG2 <- ctsG[,-1]
+names_ctsG <- ctsG[,1]
+rownames(ctsG2) <- make.names(names_ctsG, unique=TRUE)
+head(ctsG2)
+
+meta <- read.table("metadataDeseq.txt", sep="\t",header=TRUE,row.names=1)
+meta
+
+ddsG <- DESeqDataSetFromMatrix(countData = ctsG2,
+                              colData = meta,
+                              design= ~ type)
+                              
+ddsG <- DESeq(ddsG)
+
+humanVgG=results(ddsG, contrast=c("type","human","gorilla"))
+humanVgG2=humanVgG[order(humanVgG$padj),]
+write.csv(as.data.frame(humanVgG2), file="deseq2resultsHumanVgG2.csv")
+
+humanVchimpG=results(ddsG, contrast=c("type","human","chimp"))
+humanVchimpG2=humanVchimpG[order(humanVchimpG$padj),]
+write.csv(as.data.frame(humanVchimpG2), file="deseq2resultsHumanVchimpG2.csv")
+
+chimpVgorG=results(ddsG, contrast=c("type","chimp","gorilla"))
+chimpVgorG2=chimpVgorG[order(chimpVgorG$padj),]
+write.csv(as.data.frame(chimpVgorG2), file="deseq2resultsChimpVgorG2.csv")
+
+```
+
+Now trying pathway independet of taxa Deseq..i switched directory at top to Scripts
+
+```{r}
+meta <- read.table("Primate_metadata.txt", sep="\t",header=TRUE,row.names=1)
+meta
+```
+```{r}
+cts2 <- read.csv("pathway_type.csv",header=TRUE)
+head(cts2)
+
+#cts2Agg=aggregate(cts[ , 2:10], by = list(cts2$OTUID), FUN = sum)   no need to Agg for this
+  
+cts3 <- cts2[,-1]
+names_cts <- cts2[,1]
+rownames(cts3) <- make.names(names_cts, unique=TRUE)
+head(cts3)
+
+#match rows to meta columns
+
+meta2 <- meta[row.names(meta) %in% colnames(cts2),]
+meta2
+meta3=meta2[match(colnames(cts2[,-1]), rownames(meta2)),]
+meta3
+
+dds <- DESeqDataSetFromMatrix(countData = cts3,
+                              colData = meta3,
+                              design= ~ Species)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+res <- results(dds, name="Species_human_vs_Gorilla.gorilla.gorilla")
+# or to shrink log fold changes association with condition:
+res <- lfcShrink(dds, coef="condition_trt_vs_untrt", type="apeglm")
+
+humanVg=results(dds, contrast=c("Species","human","Gorilla_gorilla_gorilla"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2PathwayIndresultsHumanVg.csv")
+```
+now trying chimp..i think need to change order of names
+```{r}
+humanVc=results(dds, contrast=c("Species","human","Pan_troglodytes"))
+res2=humanVg[order(-humanVc$padj), "pvalue", drop = FALSE]
+
+humanVc2=humanVc[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVc2), file="deseq2PathwayIndresultsHumanVchimp.csv")
+```
+
+Now trying keggs
+
+```{r}
+cts2 <- read.csv("kegg2koname.csv",header=TRUE,row.names=1)
+head(cts2)
+
+dds <- DESeqDataSetFromMatrix(countData = cts2,
+                              colData = meta3,
+                              design= ~ Species)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Species","human","Gorilla_gorilla_gorilla"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2PathwayIndresultsHumanVgKegg.csv")
+```
+
+```{r}
+humanVg=results(dds, contrast=c("Species","human","Pan_troglodytes"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2PathwayIndresultsHumanVchimpKegg.csv")
+```
+
+```{r}
+cts2 <- read.csv("keggpath2class.csv",header=TRUE,row.names=1)
+head(cts2)
+
+dds <- DESeqDataSetFromMatrix(countData = cts2,
+                              colData = meta3,
+                              design= ~ Species)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Species","human","Gorilla_gorilla_gorilla"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2PathwayIndresultsHumanVgClass.csv")
+```
+```{r}
+
+humanVg=results(dds, contrast=c("Species","human","Pan_troglodytes"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2PathwayIndresultsHumanVchimpClass.csv")
+```
+
+Now doing by species level
+
+```{r}
+meta <- read.table("pathwayspecies_metadata.txt", sep="\t",header=TRUE,row.names=1)
+```
+
+```{r}
+cts2 <- read.csv("pathwaytype_species_Anti.csv",header=TRUE,row.names=1)
+head(cts2)
+
+cts2= as.matrix(cts2+1)
+
+dds <- DESeqDataSetFromMatrix(countData = cts2,
+                              colData = meta,
+                              design= ~ Human)
+
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Human","yes","no"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2PathwaySpeicesresultsHumanVnon.csv")
+```
+
+Now trying three factors / 3 species so cts2 is staying same as above
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = cts2,
+                              colData = meta,
+                              design= ~ Species)
+
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Species","human","chimp","gorilla"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2PathwaySpeicesresultsHumanVchimpVgor.csv")
+```
+Seems like it doesnt work and only accepts 2
+
+plot code for path3ay species of human vs non human Anit subset
+
+```{r}
+ars=read.table("deseq2PathwaySpeicesresultsHumanVnon.csv",sep=',',row.names=1,header=TRUE)
+ars
+```
+#Might need to redo pathways below this one again? not sure
+```{r}
+ars2=subset(ars,padj<0.1)
+OTUs=rownames(ars2)
+
+pARS=ggplot(ars2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+lfcSE), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-7,5.5)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Antibiotic resistant microbes in human and non-human primates",fill="") +
+  scale_fill_manual(labels = c("Human", "Non-human"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.95,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.65,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pARS
+```
+
+
+now doing pathway plot
+```{r}
+cts2 <- read.csv("pathway_type.csv",header=TRUE)
+head(cts2)
+
+#cts2Agg=aggregate(cts[ , 2:10], by = list(cts2$OTUID), FUN = sum)   no need to Agg for this
+  
+cts3 <- cts2[,-1]
+names_cts <- cts2[,1]
+rownames(cts3) <- make.names(names_cts, unique=TRUE)
+head(cts3)
+
+#match rows to meta columns
+
+meta2 <- meta[row.names(meta) %in% colnames(cts2),]
+meta2
+meta3=meta2[match(colnames(cts2[,-1]), rownames(meta2)),]
+meta3
+
+dds <- DESeqDataSetFromMatrix(countData = cts3,
+                              colData = meta3,
+                              design= ~ human)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+
+humanVg=results(dds, contrast=c("human","yes","no"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2PathwayIndresultsHumanVnon.csv")
+```
+```{r}
+pw=read.table("deseq2PathwayIndresultsHumanVnon.csv",sep=',',row.names=1,header=TRUE)
+pw
+```
+
+
+```{r}
+pw2=subset(pw,padj<0.01)
+OTUs=rownames(pw2)
+
+pW=ggplot(pw2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+lfcSE), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Functional pathways in human and non-human primate skin microbiomes",fill="") +
+  scale_fill_manual(labels = c("Human", "Non-human"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.95,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.65,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pW
+
+
+```
+
+
+```{r}
+pts=read.table("pathway_type_species.txt",header=TRUE,sep="\t")
+pts
+```
+```{r}
+smeta <- read.table("pathwayspecies_metadata.txt", sep="\t",header=TRUE,row.names=1)
+#note that ptsCholine is the df i made below..
+smeta2 <- smeta[row.names(smeta) %in% colnames(ptsCholine),]
+smeta2
+smeta3=smeta2[match(colnames(ptsCholine[,]), rownames(smeta2)),]
+smeta3
+```
+```{r}
+#ptsCHoline I made below
+dds <- DESeqDataSetFromMatrix(countData = ptsCholine,
+                              colData = smeta3,
+                              design= ~ Human)
+                              
+dds <- DESeq(dds,fitType="mean")
+resultsNames(dds) # lists the coefficients
+```
+
+```{r}
+humanVg=results(dds, contrast=c("Species","human","Gorilla_gorilla_gorilla"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2PathwayIndresultsHumanVgClass.csv")
+```
+
+Trying Choline:
+
+```{r}
+
+pts=read.table("pathway_type_species.txt",header=TRUE,sep="\t")
+# Subset the dataframe using dplyr
+ptsCholine <- pts %>%
+  filter(Pathway == "Choline-Degradation") %>%
+  select(-Pathway) %>%
+  tibble::column_to_rownames(var="featureID")
+ptsCholine= as.matrix(ptsCholine+1)
+
+dds <- DESeqDataSetFromMatrix(countData = ptsCholine,
+                              colData = smeta3,
+                              design= ~ Human)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Human","yes","no"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2PathwayCholineSpeciesHumanVnon.csv")
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  
+pwc=read.table("deseq2PathwayCholineSpeciesHumanVnon.csv",sep=',',row.names=1,header=TRUE)
+pwc
+pwc2=subset(pwc,padj<0.05)
+OTUs=rownames(pwc2)
+
+pC=ggplot(pwc2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+lfcSE), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Choline degradation microbes in human and non-human primate skin microbiomes",fill="") +
+  scale_fill_manual(labels = c("Human", "Non-human"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.95,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.65,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pC
+
+
+
+
+```
+DOesnt find any sig
+
+trying Antibiotic Biosynth
+```{r}
+pts=read.table("pathway_type_species.txt",header=TRUE,sep="\t")
+# Subset the dataframe using dplyr
+ptsCholine <- pts %>%
+  filter(Pathway == "Antibiotic-Biosynthesis") %>%
+  select(-Pathway) %>%
+  tibble::column_to_rownames(var="featureID")
+ptsCholine= as.matrix(ptsCholine+1)
+
+dds <- DESeqDataSetFromMatrix(countData = ptsCholine,
+                              colData = smeta3,
+                              design= ~ Human)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Human","yes","no"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2PathwayAntiSynthSpeciesHumanVnon.csv")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  
+pwc=read.table("deseq2PathwayAntiSynthSpeciesHumanVnon.csv",sep=',',row.names=1,header=TRUE)
+pwc
+pwc2=subset(pwc,padj<0.05)
+OTUs=rownames(pwc2)
+
+pAS=ggplot(pwc2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+lfcSE), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Choline degradation microbes in human and non-human primate skin microbiomes",fill="") +
+  scale_fill_manual(labels = c("Human", "Non-human"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.95,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.65,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pAS
+
+```
+
+```{r}
+pts=read.table("pathway_type_species.txt",header=TRUE,sep="\t")
+# Subset the dataframe using dplyr
+ptsCholine <- pts %>%
+  filter(Pathway == "Peptidoglycan-Biosynthesis") %>%
+  select(-Pathway) %>%
+  tibble::column_to_rownames(var="featureID")
+ptsCholine= as.matrix(ptsCholine+1)
+
+dds <- DESeqDataSetFromMatrix(countData = ptsCholine,
+                              colData = smeta3,
+                              design= ~ Human)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Human","yes","no"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2PathwayPepSynthSpeciesHumanVnon.csv")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  
+pwp=read.table("deseq2PathwayPepSynthSpeciesHumanVnon.csv",sep=',',row.names=1,header=TRUE)
+pwp
+pwp2=subset(pwp,padj<0.01)
+OTUs=rownames(pwp2)
+
+pPS=ggplot(pwp2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+lfcSE), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Peptidoglycan synth microbes in human and non-human primate skin microbiomes",fill="") +
+  scale_fill_manual(labels = c("Human", "Non-human"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.95,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.65,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pPS
+```
+```{r}
+kp=read_tsv("kegg2koname.tsv")
+kp=kp %>% column_to_rownames(var="OTUID")
+
+```
+```{r}
+kmeta=read.table("Primate_metadata.txt", sep="\t",header=TRUE,row.names=1)
+kmeta
+```
+```{r}
+kmeta2 <- kmeta[row.names(kmeta) %in% colnames(kp),]
+kmeta2
+kmeta3=kmeta2[match(colnames(kp[,]), rownames(kmeta2)),]
+kmeta3
+```
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = kp,
+                              colData = kmeta3,
+                              design= ~ human)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("human","yes","no"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVg2=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVg2), file="deseq2keggHumanVnon.csv")
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  
+pwk=read.table("deseq2keggHumanVnon.csv",sep=',',row.names=1,header=TRUE)
+pwk
+pwk2=subset(pwk,padj<0.0000000000001)
+OTUs=rownames(pwk2)
+
+pK=ggplot(pwk2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+lfcSE), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Kegg pathways in human and non-human primate skin microbiomes",fill="") +
+  scale_fill_manual(labels = c("Human", "Non-human"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.95,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 1,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+```{r}
+counts = matrix(rnbinom(1000,mu=50,size=1),100,10)
+
+```
+redoing graph to make it look simpler  with new file deseq2keggHumanVnon_modified_forGraph
+```{r}
+pwk=read.table("deseq2keggHumanVnon_modified_forGraph.csv",sep=',',row.names=1,header=TRUE)
+pwk
+pwk2=subset(pwk,padj<0.0000000000001)
+OTUs=rownames(pwk2)
+
+pK=ggplot(pwk2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+lfcSE), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Kegg pathways in human and non-human primate skin microbiomes",fill="") +
+  scale_fill_manual(labels = c("Human", "Non-human"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.75,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.75,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+pW, pARS, pK
+building a cowplot
+
+```{r}
+install.packages("cowplot")
+library(cowplot)
+```
+```{r}
+plot_grid(pW)
+```
+~~~~Doing Face region analysis now have to use original labels instead of the merged version that lumped facial regions together
+```{r}
+cts <- read.csv("pathway_type.csv",header=TRUE,row.names=1)
+cts
+```
+```{r}
+meta=read.table("Primate_metadata.txt", sep='\t',header=TRUE,row.names=1)
+meta
+```
+```{r}
+meta <- subset(meta, !is.na(Location))
+meta=subset(meta,Location!='human')
+
+icol=colnames(cts)
+irow=rownames(meta)
+
+int=intersect(irow,icol)
+cts2=cts[ ,int]
+meta2=meta[int, ]
+```
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = cts2,
+                              colData = meta2,
+                              design= ~ Location)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Location","Chin","Cheek"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVCheek=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVCheek), file="deseq2keggChinVCheek.csv")
+```
+Now Chin V Forehead
+
+```{r}
+humanVg=results(dds, contrast=c("Location","Chin","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinForehead=humanVg[order(humanVg$padj),]
+ChinForehead
+
+write.csv(as.data.frame(ChinForehead), file="deseq2keggChinVForehead.csv")
+```
+CheekForehead
+```{r}
+humanVg=results(dds, contrast=c("Location","Cheek","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+CheekVForehead=humanVg[order(humanVg$padj),]
+CheekVForehead
+
+write.csv(as.data.frame(CheekVForehead), file="deseq2keggCheekVForeead.csv")
+```
+```{r}
+ChinVCheek
+pwd=data.frame(ChinVCheek)
+```
+```{r}
+
+pwd2=pwd[1:10,]
+OTUs=rownames(pwd2)
+
+pK=ggplot(pwd2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+lfcSE), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Kegg pathways in human and non-human primate skin microbiomes",fill="") +
+  scale_fill_manual(labels = c("Chin", "Cheek"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.75,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.75,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+
+Now ChinForehead
+
+```{r}
+pwd=data.frame(ChinForehead)
+pwd2=pwd[1:10,]
+OTUs=rownames(pwd2)
+
+pK=ggplot(pwd2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+(lfcSE)), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Kegg pathways in human and non-human primate skin microbiomes",fill="") +
+  scale_fill_manual(labels = c("Chin", "Forehead"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.75,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.75,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+#now doing species
+
+```{r}
+cts=read.csv("oguspecies_table.csv",header=TRUE,row.names=1)
+cts
+meta <- subset(meta, !is.na(Location))
+meta=subset(meta,Location!='human')
+
+icol=colnames(cts)
+irow=rownames(meta)
+
+int=intersect(irow,icol)
+cts2=cts[ ,int]
+meta2=meta[int, ]
+```
+```{r}
+cts2[is.na(cts2)] <- 0
+dds <- DESeqDataSetFromMatrix(countData = cts2,
+                              colData = meta2,
+                              design= ~ Location)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Location","Chin","Cheek"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVCheekSpecies=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVCheekSpecies), file="deseq2SpeciesChinVCheek.csv")
+ChinVCheekSpecies[1:10,]
+```
+```{r}
+pwd=read.csv("deseq2SpeciesChinVCheek.csv",header=TRUE,row.names=1)
+pwd2=data.frame(pwd[1:20,])
+OTUs=rownames(pwd2)
+
+pK=ggplot(pwd2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+(lfcSE)), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Differentially abundant microbes between Chin and Cheek microbiomes",fill="") +
+  scale_fill_manual(labels = c("Chin", "Cheek"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.75,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.75,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+
+```{r}
+humanVg=results(dds, contrast=c("Location","Chin","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVForeheadSpecies=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVForeheadSpecies), file="deseq2SpeciesChinVForehead.csv")
+ChinVForeheadSpecies[1:10,]
+```
+NONSIG above
+now Cheek Forehead
+```{r}
+humanVg=results(dds, contrast=c("Location","Cheek","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+CheekVForeheadSpecies=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(CheekVForeheadSpecies), file="deseq2SpeciesCheekVForehead.csv")
+CheekVForeheadSpecies[1:10,]
+```
+
+```{r}
+```
+
+
+```{r}
+pwd=read.csv("deseq2SpeciesCheekVForehead.csv",header=TRUE,row.names=1)
+pwd2=data.frame(pwd[1:20,])
+OTUs=rownames(pwd2)
+
+pK=ggplot(pwd2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+(lfcSE)), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Differentially abundant microbes between Cheek and Forehead microbiomes",fill="") +
+  scale_fill_manual(labels = c("Cheek", "Forehead"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.75,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.75,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+```{r}
+library(data.table)
+library(vegan)
+library(dplyr)
+library(ecodist)
+```
+```{r}
+cts3=t(cts2)
+
+    cts4=bcdist(cts3)
+      nrow(cts4)
+ad=adonis2(cts4~Location*Species, meta2, permutations = 999, method = "bray")
+ad  
+
+adflip=adonis2(cts4~Species+Location, meta, permutations = 999, method = "bray")
+adflip
+write.csv(file='adonisSpeciesAllChimpandGorilla.csv',ad)
+```
+```{r}
+kts <- read.csv("kegg2koname.csv",header=TRUE,row.names=1)
+kts
+
+meta <- subset(meta, !is.na(Location))
+meta=subset(meta,Location!='human')
+
+icol=colnames(kts)
+irow=rownames(meta)
+
+int=intersect(irow,icol)
+kts2=kts[ ,int]
+meta2=meta[int, ]
+```
+```{r}
+kts3=t(kts2)
+
+kts4=bcdist(kts3)
+      
+ad=adonis2(kts4~Location+Species, meta2, permutations = 999, method = "bray")
+ad 
+```
+```{r}
+
+
+pts <- read.csv("pathway_type.csv",header=TRUE,row.names=1)
+pts
+
+
+icol=colnames(pts)
+irow=rownames(meta)
+
+int=intersect(irow,icol)
+pts2=pts[ ,int]
+
+
+pts3=t(pts2)
+
+pts4=bcdist(pts3)
+      
+ad=adonis2(pts4~Location+Species, meta2, permutations = 999, method = "bray")
+ad 
+```
+Now checking kegg pathway Deseq
+
+```{r}
+```{r}
+kts2[is.na(kts2)] <- 0
+dds <- DESeqDataSetFromMatrix(countData = kts2,
+                              colData = meta2,
+                              design= ~ Location)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Location","Chin","Cheek"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVCheekKegg=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVCheekKegg), file="deseq2KeggChinVCheek.csv")
+ChinVCheekKegg[1:10,]
+```
+```{r}
+humanVg=results(dds, contrast=c("Location","Chin","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVForeheadKegg=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVForeheadKegg), file="deseq2KeggChinVForehead.csv")
+ChinVForeheadKegg[1:10,]
+```
+
+```{r}
+humanVg=results(dds, contrast=c("Location","Cheek","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+CheekVForeheadKegg=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(CheekVForeheadKegg), file="deseq2KeggCheekVForehead.csv")
+CheekVForeheadKegg[1:10,]
+```
+```{r}
+setwd("/Users/samd/OneDrive\ -\ Northwestern\ University/Primate/Scripts")
+library(DESeq2)
+library(ggplot2)
+```
+
+```{r}
+cts=read.csv("oguspecies_table.csv",header=TRUE,row.names=1)
+cts
+meta <- read.table("Primate_metadata.txt", sep="\t",header=TRUE,row.names=1)
+meta
+meta <- subset(meta, !is.na(Location))
+metaC=subset(meta,Species=='Pan_troglodytes')
+metaG=subset(meta,Species=='Gorilla_gorilla_gorilla')
+
+
+
+```
+```{r}
+icol=colnames(cts)
+irow=rownames(metaC)
+
+int=intersect(irow,icol)
+ctsC=cts[ ,int]
+metaC=meta[int, ]
+
+```
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = ctsC,
+                              colData = metaC,
+                              design= ~ Location)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Location","Chin","Cheek"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVCheekC=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVCheekC), file="deseq2SpeciesChinVCheekC.csv")
+```
+```{r}
+humanVg=results(dds, contrast=c("Location","Chin","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVForeheadC=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVForeheadC), file="deseq2SpeciesChinVForeheadC.csv")
+```
+
+```{r}
+
+pwd2=data.frame(ChinVForeheadC[1:10,])
+
+pwd2=read.csv("deseq2SpeciesChinVForeheadC.csv",header=TRUE, row.names=1)
+pwd2=pwd2[1:10,]
+
+OTUs=rownames(pwd2)
+
+pK=ggplot(pwd2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+(lfcSE)), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Chimpanzee chin vs. forehead",fill="") +
+  scale_fill_manual(labels = c("Chin", "Forehead"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.75,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.75,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+
+```{r}
+humanVg=results(dds, contrast=c("Location","Cheek","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+CheekVForeheadC=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(CheekVForeheadC), file="deseq2SpeciesCheekVForeheadC.csv")
+```
+Now GOrilla
+```{r}
+icol=colnames(cts)
+irow=rownames(metaG)
+
+int=intersect(irow,icol)
+ctsG=cts[ ,int]
+metaG=meta[int, ]
+
+```
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = ctsG,
+                              colData = metaG,
+                              design= ~ Location)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Location","Chin","Cheek"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVCheekG=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVCheekG), file="deseq2SpeciesChinVCheekG.csv")
+```
+```{r}
+pwd2=data.frame(ChinVCheekG[1:5,])
+pwd2=read.csv("deseq2SpeciesChinVCheekG.csv",header=TRUE, row.names=1)
+pwd2=pwd2[1:10,]
+OTUs=rownames(pwd2)
+
+pK=ggplot(pwd2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+(lfcSE)), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Differentially abundant microbes between Gorilla Chin and Cheek microbiomes",fill="") +
+  scale_fill_manual(labels = c("Chin", "Cheek"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.75,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.75,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+
+```{r}
+humanVg=results(dds, contrast=c("Location","Chin","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVForeheadG=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVForeheadG), file="deseq2SpeciesChinVForeheadG.csv")
+```
+```{r}
+humanVg=results(dds, contrast=c("Location","Cheek","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+CheekVForeheadG=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(CheekVForeheadG), file="deseq2SpeciesCheekVForeheadG.csv")
+```
+
+
+```{r}
+pwd2=data.frame(CheekVForeheadG[1:10,])
+pwd2=read.csv("deseq2SpeciesCheekVForeheadG.csv",header=TRUE, row.names=1)
+pwd2=pwd2[1:10,]
+OTUs=rownames(pwd2)
+
+pK=ggplot(pwd2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+(lfcSE)), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Gorilla cheek vs. forehead",fill="") +
+  scale_fill_manual(labels = c("Cheek", "Forehead"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.75,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.75,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+NOW pATHWAYS
+first chimp
+```{r}
+pts <- read.csv("pathway_type.csv",header=TRUE,row.names=1)
+pts
+
+
+icol=colnames(pts)
+irow=rownames(metaC)
+
+int=intersect(irow,icol)
+ptsC=pts[ ,int]
+```
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = ptsC,
+                              colData = metaC,
+                              design= ~ Location)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Location","Chin","Cheek"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVCheekCpathway=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVCheekCpathway), file="deseq2PathwayChinVCheekC.csv")
+```
+```{r}
+humanVg=results(dds, contrast=c("Location","Chin","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVForeheadCpathway=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVForeheadCpathway), file="deseq2PathwayChinVForeheadC.csv")
+```
+```{r}
+humanVg=results(dds, contrast=c("Location","Cheek","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+CheekVForeheadCpathway=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(CheekVForeheadCpathway), file="deseq2PathwayCheekVForeheadC.csv")
+```
+Now Gorilla
+```{r}
+pts <- read.csv("pathway_type.csv",header=TRUE,row.names=1)
+pts
+
+
+icol=colnames(pts)
+irow=rownames(metaG)
+
+int=intersect(irow,icol)
+ptsG=pts[ ,int]
+```
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = ptsG,
+                              colData = metaG,
+                              design= ~ Location)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Location","Chin","Cheek"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVCheekGpathway=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVCheekGpathway), file="deseq2PathwayChinVCheekG.csv")
+```
+```{r}
+humanVg=results(dds, contrast=c("Location","Chin","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVForeheadGpathway=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVForeheadGpathway), file="deseq2PathwayChinVForeheadG.csv")
+```
+```{r}
+humanVg=results(dds, contrast=c("Location","Cheek","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+CheekVForeheadGpathway=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(CheekVForeheadGpathway), file="deseq2PathwayCheekVForeheadG.csv")
+```
+~~~~~~~~~~~~~~~
+DOing parblot of adonis results for taxonomy and face site
+
+```{r}
+#make sure ggplot2 is installed
+library(ggplot2)
+
+#read in the table
+adskin=read.csv("adonisSpeciesAllChimpandGorilla_modifiedggplot2.csv", header=TRUE)
+adskin
+
+#This is to set order of the factor labels (not necessary initially can skip if u want)
+adskin$Factor <- factor(adskin$Factor, levels = c("Face site", "Host"))
+adskin$Type <- factor(adskin$Type, levels = c("Taxonomy", "Pathways"))
+
+#This is to make the plot
+  (p=ggplot(data=adskin, aes(x=Factor, y=R2)) +
+  geom_bar(aes(fill=Factor),stat="identity", position = "dodge")+
+  facet_wrap(~Type, scales = "free_x", strip.position="bottom")+
+  scale_y_continuous(limits = c(0,0.45), expand = c(0, 0)) +
+    scale_fill_manual(values=c("#B18742","#333738"))+
+    ylab("R-squared")+
+      xlab("")+
+     theme_classic()+
+    theme(text=element_text(size=17))+
+  theme(strip.background = element_blank(),strip.placement="outside"))
+    
+```
+Now trying kegg specifically
+
+```{r}
+kts <- read.csv("kegg2koname.csv",header=TRUE,row.names=1)
+kts
+
+meta <- subset(meta, !is.na(Location))
+meta=subset(meta,Location!='human')
+
+#chimp subset
+icol=colnames(kts)
+irow=rownames(metaC)
+
+int=intersect(irow,icol)
+ktsC=kts[ ,int]
+
+#gorilla subset
+icol=colnames(kts)
+irow=rownames(metaG)
+
+int=intersect(irow,icol)
+ktsG=kts[ ,int]
+
+```
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = ktsC,
+                              colData = metaC,
+                              design= ~ Location)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Location","Chin","Cheek"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVCheekCpathway=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVCheekCpathway), file="deseq2keggChinVCheekC.csv")
+```
+```{r}
+humanVg=results(dds, contrast=c("Location","Chin","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVForeheadCpathway=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVForeheadCpathway), file="deseq2keggChinVForeheadC.csv")
+```
+```{r}
+humanVg=results(dds, contrast=c("Location","Cheek","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+CheekVForeheadCpathway=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(CheekVForeheadCpathway), file="deseq2keggCheekVForeheadC.csv")
+```
+
+```{r}
+dds <- DESeqDataSetFromMatrix(countData = ktsG,
+                              colData = metaG,
+                              design= ~ Location)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Location","Chin","Cheek"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVCheekGpathway=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVCheekCpathway), file="deseq2keggChinVCheekG.csv")
+```
+```{r}
+humanVg=results(dds, contrast=c("Location","Chin","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChinVForeheadGpathway=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChinVForeheadGpathway), file="deseq2keggChinVForeheadG.csv")
+```
+
+```{r}
+humanVg=results(dds, contrast=c("Location","Cheek","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+CheekVForeheadGpathway=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(CheekVForeheadGpathway), file="deseq2keggCheekVForeheadG.csv")
+```
+~~~~~~~~~~~~~~~~~~~~~~~
+And now redoing human vs non human analyses with new files with more samples
+
+```{r}
+setwd("/Users/samd/OneDrive\ -\ Northwestern\ University/Primate/Scripts")
+meta=read.table("metadata2_Indiv.txt",sep="\t",header=TRUE,row.names=1)
+
+
+cts=read.csv("pathway_type_barplot2.csv",header=TRUE,row.names=1)
+cts
+
+```
+
+```{r}
+#meta <- subset(meta, !is.na(Location))
+#save this for face site redo down below: meta=subset(meta,Location!='human')
+
+icol=colnames(cts)
+irow=rownames(meta)
+
+int=intersect(irow,icol)
+cts2=cts[ ,int]
+meta2=meta[int, ]
+
+
+dds <- DESeqDataSetFromMatrix(countData = cts2,
+                              colData = meta2,
+                              design= ~ human)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("human","yes","no"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVnhppath=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVnhppath), file="deseq2pathHumanVnhp.csv")
+```
+
+```{r}
+pwd2=read.csv("deseq2pathHumanVnhp.csv",header=TRUE, row.names=1)
+pwd2=pwd2[1:10,]
+OTUs=rownames(pwd2)
+
+pK=ggplot(pwd2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+(lfcSE)), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Skin microbial pathways across humans and",fill="") +
+  scale_fill_manual(labels = c("Human", "Non-human primate"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.75,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.75,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+Now trying to merge because results are biased towards NHP
+Merging by SID
+```{r}
+setwd("/Users/samd/OneDrive\ -\ Northwestern\ University/Primate/Scripts")
+metaphy=read.table("metadata2_Indiv.txt",sep="\t",header=TRUE,row.names=1)
+
+
+ctsphy=read.csv("pathway_type_barplot2.csv",header=TRUE,row.names=1)
+ctsphy
+
+OTU = otu_table(ctsphy, taxa_are_rows = TRUE)
+META=sample_data(metaphy)
+phyp=phyloseq(OTU,META)
+
+phyp2 = merge_samples(phyp, "SID")
+phyp3=data.frame(t(phyp2@otu_table))
+#had to add Xs cuz of R..not ideal
+sampleid=c( "X1" , "X2" , "X3" , "X4" , "X5" , "X6" , "X7" , "DN" ,"JN", "PP", "ST")
+Species=c("Gorilla","Chimp","Chimp","Gorilla","Gorilla","Gorilla","Chimp","human","human","human","human")
+human=c("no","no","no","no","no","no","no","yes","yes","yes","yes")
+mergedmeta=data.frame(sampleid,Species,human)
+rownames(mergedmeta)=mergedmeta$sampleid
+mergedmeta
+
+
+
+dds <- DESeqDataSetFromMatrix(countData = phyp3,
+                              colData = mergedmeta,
+                              design= ~ human)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("human","yes","no"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVnhpMergedpath=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVnhpMergedpath), file="deseq2pathhumanVnhpMerged.csv")
+
+```
+
+```{r}
+#pwd2=read.csv("deseq2pathHumanVnhp.csv",header=TRUE, row.names=1)
+pwd2=data.frame(humanVnhpMergedpath[1:10,])
+OTUs=rownames(pwd2)
+
+pK=ggplot(pwd2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+(lfcSE)), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Skin microbial pathways across humans and NHPs",fill="") +
+  scale_fill_manual(labels = c("Human", "Non-human primate"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.75,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.75,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+```{r}
+setwd("/Users/samd/OneDrive\ -\ Northwestern\ University/Primate/Scripts")
+ntphy=read.csv("pathwaynotype.csv",header=TRUE,row.names=1)
+ntphy
+
+OTUn = otu_table(ntphy, taxa_are_rows = TRUE)
+METAn=sample_data(metaphy)
+phypn=phyloseq(OTUn,METAn)
+
+phyp2n = merge_samples(phypn, "SID")
+phyp3n=data.frame(t(phyp2n@otu_table))
+#had to add Xs cuz of R..not ideal
+sampleid=c( "X1" , "X2" , "X3" , "X4" , "X5" , "X6" , "X7" , "DN" ,"JN", "PP", "ST")
+Species=c("Gorilla","Chimp","Chimp","Gorilla","Gorilla","Gorilla","Chimp","human","human","human","human")
+human=c("no","no","no","no","no","no","no","yes","yes","yes","yes")
+mergedmeta=data.frame(sampleid,Species,human)
+rownames(mergedmeta)=mergedmeta$sampleid
+mergedmeta
+
+
+
+dds <- DESeqDataSetFromMatrix(countData = phyp3n,
+                              colData = mergedmeta,
+                              design= ~ human)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("human","yes","no"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+humanVnhpMergedpathNoType=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(humanVnhpMergedpathNoType), file="deseq2pathhumanVnhpMergedNoType.csv")
+```
+```{r}
+#pwd2=read.csv("deseq2pathHumanVnhp.csv",header=TRUE, row.names=1)
+pwd2=data.frame(humanVnhpMergedpathNoType[1:10,])
+OTUs=rownames(pwd2)
+
+pK=ggplot(pwd2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+(lfcSE)), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Skin microbial pathways (MetaCyc) across humans and NHPs",fill="") +
+  scale_fill_manual(labels = c("Human", "Non-human primate"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.75,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.75,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+Now doing face site
+
+```{r}
+ntphy=read.csv("pathwaynotype.csv",header=TRUE,row.names=1)
+ntphy
+metaphy=read.table("metadata2_Indiv.txt",sep="\t",header=TRUE,row.names=1)
+metaphy <- subset(metaphy, !is.na(Location))
+metaphy=subset(metaphy,Location!='human')
+metaG=subset(metaphy,Species=='Gorilla_gorilla_gorilla')
+metaC=subset(metaphy,Species=='Pan_troglodytes')
+
+#Gorilla first
+icol=colnames(ntphy)
+irow=rownames(metaG)
+
+int=intersect(irow,icol)
+cts2=ntphy[ ,int]
+meta2=metaG[int, ]
+
+
+dds <- DESeqDataSetFromMatrix(countData = cts2,
+                              colData = meta2,
+                              design= ~ Location)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Location","Chin","Cheek"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+gorillaChinVCheekpath=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(gorillaChinVCheekpath), file="deseq2pathgorillaChinVCheekPathnt.csv")
+```
+
+NOW doing FACE SITE with 16S
+library(plyr)
+```{r}
+setwd("/Users/samd/OneDrive\ -\ Northwestern\ University/Primate/Scripts")
+of=read.csv("16Sr3otu.csv",header=TRUE,row.names=1)
+of
+tf=read.csv("16Sr3tax.csv",header=TRUE,row.names=1)
+tf
+#also trying normal taxtable with full taxaonomy concatenated
+tft=read.table("16Sr3tax.txt",header=TRUE,row.names=1,sep="\t")
+tft
+
+mf2=read.csv("16Smetadata2.csv",header=TRUE,row.names=1)
+mf2
+
+of2=merge(y = of, x = tft, by = 'row.names',all.y=TRUE)
+of2
+
+of3=subset(of2,Taxon!="d__Bacteria" & Taxon!="Unassigned")
+of4=ddply(of3,"Taxon",numcolwise(sum))
+of5 <- of4[,-1]
+rownames(of5) <- of4[,1]
+of5
+
+
+```
+
+```{r}
+mphy=read.table("16Smetadata2.txt",header=TRUE,row.names=1)
+mphy
+metaphy <- subset(mphy, !is.na(Location))
+metaphy=subset(metaphy,Location!='human')
+metaG=subset(metaphy,Species=='Gorilla_gorilla_gorilla')
+metaC=subset(metaphy,Species=='Pan_troglodytes')
+
+#Gorilla first
+icol=colnames(of5)
+irow=rownames(metaG)
+
+int=intersect(irow,icol)
+cts2=of5[ ,int]
+meta2=metaG[int, ]
+
+library(DESeq2)
+dds <- DESeqDataSetFromMatrix(countData = cts2,
+                              colData = meta2,
+                              design= ~ Location)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Location","Chin","Cheek"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+gorillaChinVCheek16S=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(gorillaChinVCheek16S), file="deseq2pathgorillaChinVCheek16S.csv")
+```
+```{r}
+humanVg=results(dds, contrast=c("Location","Chin","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+gorillaChinVFore16S=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(gorillaChinVFore16S), file="deseq2pathgorillaChinVFore16S.csv")
+```
+
+```{r}
+humanVg=results(dds, contrast=c("Location","Cheek","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+gorillaCheekVFore16S=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(gorillaCheekVFore16S), file="deseq2pathgorillaCheekVFore16S.csv")
+```
+
+```{r}
+#Chimp now
+icol=colnames(of5)
+irow=rownames(metaC)
+
+int=intersect(irow,icol)
+cts2=of5[ ,int]
+meta2=metaC[int, ]
+
+
+dds <- DESeqDataSetFromMatrix(countData = cts2,
+                              colData = meta2,
+                              design= ~ Location)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("Location","Chin","Cheek"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChimpChinVCheek16S=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChimpChinVCheek16S), file="deseq2pathChimpChinVCheek16S.csv")
+```
+```{r}
+humanVg=results(dds, contrast=c("Location","Chin","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChimpChinVFore16S=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChimpChinVFore16S), file="deseq2pathChimpChinVFore16S.csv")
+```
+```{r}
+humanVg=results(dds, contrast=c("Location","Cheek","Forehead"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+ChimpCheekVFore16S=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(ChimpCheekVFore16S), file="deseq2pathChimpCheekVFore16S.csv")
+```
+Now doing the 16S taxonomy across human and non human
+
+```{r}
+library(qiime2R)
+
+setwd("/Users/samd/OneDrive\ -\ Northwestern\ University/Primate/Scripts")
+pg=qza_to_phyloseq(
+  features = "16Sr3tablef_grouped_species.qza",
+  #taxonomy= "16Sr3tax.qza",
+  metadata = "16Smetadata2_grouped.txt"
+)
+pg
+```
+```{r}
+
+destroyX = function(es) {
+  f = es
+  for (col in c(1:ncol(f))){ #for each column in dataframe
+    if (startsWith(colnames(f)[col], "X") == TRUE)  { #if starts with 'X' ..
+      colnames(f)[col] <- substr(colnames(f)[col], 2, 100) #get rid of it
+    }
+  }
+  assign(deparse(substitute(es)), f, inherits = TRUE) #assign corrected data to original name
+}
+
+pgm=data.frame(pg@sam_data)
+pgo=data.frame(pg@otu_table)
+destroyX(pgo)
+pgo
+```
+
+```{r}
+library(dplyr)
+
+pgm1=pgm %>% mutate(HumanYN = ifelse(pgm$Species=="Homo_sapiens", "Human", "NHP"))
+pgm1
+
+
+
+dds <- DESeqDataSetFromMatrix(countData = pgo,
+                              colData = pgm1,
+                              design= ~ HumanYN)
+                              
+dds <- DESeq(dds)
+resultsNames(dds) # lists the coefficients
+
+humanVg=results(dds, contrast=c("HumanYN","Human","NHP"))
+res2=humanVg[order(-humanVg$padj), "pvalue", drop = FALSE]
+
+HumanVsNon16S_species=humanVg[order(humanVg$padj),]
+
+write.csv(as.data.frame(HumanVsNon16S_species), file="deseq2HumanVsNon16S_species.csv")
+```
+
+```{r}
+pwd2=read.csv("deseq2HumanVsNon16S_species.csv",header=TRUE, row.names=1)
+#pwd2=data.frame(HumanVsNon16S_species[1:10,])
+pwd2=pwd2[1:10,]
+OTUs=rownames(pwd2)
+
+pK=ggplot(pwd2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+(lfcSE)), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Skin microbiome differential abundance across humans and NHPs",fill="") +
+  scale_fill_manual(labels = c("Human", "Non-human primate"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.75,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.75,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+
+trying to run dada2 on yamomami
+
+```{r}
+library(dada2)
+path="/Users/samd/Library/CloudStorage/OneDrive-NorthwesternUniversity/Primate/Scripts/yamomami"
+list.files(path)
+fnFs <- sort(list.files(path, pattern=".fastq", full.names = TRUE))
+plotQualityProfile(fnFs[1:2])
+```
+doing adonis again
+
+```{r}
+icol=colnames(of5)
+irow=rownames(mf2)
+
+int=intersect(irow,icol)
+adt=of5[ ,int]
+mad=mf2[int, ]
+
+adt2=t(adt)
+
+    adt3=bcdist(adt2)
+
+adflip=adonis2(adt3~Species+Location, mad, permutations = 999, method = "bray")
+adflip
+write.csv(file='adonisSpeciesAllChimpandGorilla2.csv',adflip)
+
+```
+
+redoing deseq for NHp vs human MG
+```{r}
+pw=read.table("deseq2pathHumanVnhp_filtered.csv",sep=',',row.names=1,header=TRUE)
+pw
+```
+```{r}
+
+#pwd2=data.frame(HumanVsNon16S_species[1:10,])
+pwd2=pw[1:14,]
+OTUs=rownames(pwd2)
+
+pK=ggplot(pwd2,aes(reorder(OTUs,-log2FoldChange),log2FoldChange,fill=log2FoldChange < 0))+
+    geom_bar(stat="identity")+
+    geom_errorbar(aes(ymin=log2FoldChange-lfcSE, ymax=log2FoldChange+(lfcSE)), width=.2, alpha=0.6,
+                 position=position_dodge(.9)) +
+#ylim(-4.75,3)+
+    theme_classic()+
+    ylab("log2FoldChange")+
+    labs(title = "Skin microbiome pathway differential abundance across humans and NHPs",fill="") +
+  scale_fill_manual(labels = c("Human", "Non-human primate"), values = c("#ff6e54","#444e86" ))+
+    theme(axis.text.x = element_text(angle = 0,hjust=0.75,vjust=0.2,size=12),
+              axis.text.y = element_text(size=12),
+          axis.title.y = element_blank(),
+          axis.title.x=element_text(size=12),
+          title=element_text(size=12))+
+   theme(plot.title = element_text(hjust = 0.75,vjust=1))+
+    coord_flip()+
+ 
+  theme(legend.text=element_text(size=12))
+pK
+```
+

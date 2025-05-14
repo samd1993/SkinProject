@@ -1,0 +1,31 @@
+﻿sampleid,sample_type,Species,Social_group,Keeper,Individual,Location,altname
+KIT_PRIMATE_1C_V1V3,Primate,Gorilla_gorilla_gorilla,Azizi,Jill,1,Chin,Gorilla_Chin1
+KIT_PRIMATE_1F_V1V3,Primate,Gorilla_gorilla_gorilla,Azizi,Jill,1,Forehead,Gorilla_Forehead1
+KIT_PRIMATE_1K_V1V3,Primate,Gorilla_gorilla_gorilla,Azizi,Jill,1,Whole face,Gorilla_NA1
+KIT_PRIMATE_2K_V1V3,Primate,Pan_troglodytes,Aux,Alan,2,Cheek,Chimp_Cheek2
+KIT_PRIMATE_2F_V1V3,Primate,Pan_troglodytes,Aux,Alan,2,Forehead,Chimp_Forehead2
+KIT_PRIMATE_2C_V1V3,Primate,Pan_troglodytes,Aux,Alan,2,Chin,Chimp_Chin2
+KIT_PRIMATE_3F_V1V3,Primate,Pan_troglodytes,Aux,Stacie,3,Forehead,Chimp_Forehead3
+KIT_PRIMATE_4C_V1V3,Primate,Gorilla_gorilla_gorilla,Kwan,Dian,4,Chin,Gorilla_Chin4
+KIT_PRIMATE_4F_V1V3,Primate,Gorilla_gorilla_gorilla,Kwan,Dian,4,Forehead,Gorilla_Forehead4
+KIT_PRIMATE_4K_V1V3,Primate,Gorilla_gorilla_gorilla,Kwan,Dian,4,Cheek,Gorilla_Cheek4
+KIT_PRIMATE_5C_V1V3,Primate,Gorilla_gorilla_gorilla,Kwan,Jill,5,Chin,Gorilla_Chin5
+KIT_PRIMATE_5F_V1V3,Primate,Gorilla_gorilla_gorilla,Kwan,Jill,5,Forehead,Gorilla_Forehead5
+KIT_PRIMATE_5K_V1V3,Primate,Gorilla_gorilla_gorilla,Kwan,Jill,5,Cheek,Gorilla_Cheek5
+KIT_PRIMATE_6C_V1V3,Primate,Gorilla_gorilla_gorilla,Kwan,Jill,6,Chin,Gorilla_Chin6
+KIT_PRIMATE_6F_V1V3,Primate,Gorilla_gorilla_gorilla,Kwan,Jill,6,Forehead,Gorilla_Forehead6
+KIT_PRIMATE_6K_V1V3,Primate,Gorilla_gorilla_gorilla,Kwan,Jill,6,Whole face,Gorilla_NA6
+KIT_PRIMATE_7C_V1V3,Primate,Pan_troglodytes,Aux,Jill,7,Chin,Chimp_Chin7
+KIT_PRIMATE_7K_V1V3,Primate,Pan_troglodytes,Aux,Jill,7,Cheek,Chimp_Cheek7
+KIT_PRIMATE_7F_V1V3,Primate,Pan_troglodytes,Aux,Jill,7,Forehead,Chimp_Forehead7
+KIT_PRIMATE_8C_V1V3,Primate,Pan_troglodytes,Aux,Dian,8,Chin,Chimp_Chin8
+KIT_PRIMATE_8K_V1V3,Primate,Pan_troglodytes,Aux,Dian,8,Whole face,Chimp_NA8
+KIT_PRIMATE_8F_V1V3,Primate,Pan_troglodytes,Aux,Dian,8,Whole face,Chimp_NA8a
+KIT_HANDLER_A_V1V3,Handler,Human,NA,NA,A,Whole face,Human_A
+KIT_HANDLER_D_V1V3,Handler,Human,NA,NA,D,Whole face,Human_D
+KIT_HANDLER_JM_V1V3,Handler,Human,NA,NA,J,Whole face,Human_J
+KIT_BLANK_1_V1V3,Blank,Blank,NA,NA,NA,Whole face,NA
+KIT_BLANK_2_V1V3,Blank,Blank,NA,NA,NA,Whole face,NA
+KIT_BLANK_3_V1V3,Blank,Blank,NA,NA,NA,Whole face,NA
+KIT_BLANK_4_V1V3,Blank,Blank,NA,NA,NA,Whole face,NA
+KIT_HANDLER_S_V1V3,Handler,Human,NA,NA,S,Whole face,Human_S

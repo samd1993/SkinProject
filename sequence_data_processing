@@ -1,0 +1,483 @@
+bowtie2-build --threads 24 db/concat.fna db
+
+#worked! see wol2.sh, I basically had to let it run forawhile before seeing cpu being used
+
+bowtie2 -p 8 -x db -1 R1.fq -2 R2.fq -S output.sam
+
+
+srun --partition=short --time=04:00:00 -n 4 --mem=24G --pty bash -l
+
+
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/KIT_HANDLER_DN_MG3_D8.filt1_kneaddata_paired_1.fastq -2 woltka/kneadfilt/KIT_HANDLER_DN_MG3_D8.filt1_kneaddata_paired_2.fastq  -S woltka/outputD8.sam
+
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/KIT_HANDLER_DN_MG3_D8.filt1_kneaddata_paired_1.fastq -2 woltka/kneadfilt/KIT_HANDLER_DN_MG3_D8.filt1_kneaddata_paired_2.fastq  -S woltka/outputD8.sam
+
+ls ~/woltka/kneadfilt/*fastq | while read line && read line1; do \
+        file1=$line;
+        file2=$line1;
+        
+        bowtie2 -p 8 -x db -1 ${file1} -2 ${file2} -S woltka/output${file1}.sam
+        #mv ${file1} ${file2} woltka/kneadfilt/finished/
+done
+
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_B8*_1.fastq -2 woltka/kneadfilt/*MG3_B8*_2.fastq  -S woltka/outputB8.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_G9*_1.fastq -2 woltka/kneadfilt/*MG3_G9*_2.fastq  -S woltka/outputG9.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_F9*_1.fastq -2 woltka/kneadfilt/*MG3_F9*_2.fastq  -S woltka/outputF9.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_H9*_1.fastq -2 woltka/kneadfilt/*MG3_H9*_2.fastq  -S woltka/outputH9.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_A9*_1.fastq -2 woltka/kneadfilt/*MG3_A9*_2.fastq  -S woltka/outputA9.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_D9*_1.fastq -2 woltka/kneadfilt/*MG3_D9*_2.fastq  -S woltka/outputD9.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_B9*_1.fastq -2 woltka/kneadfilt/*MG3_B9*_2.fastq  -S woltka/outputB9.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_C9*_1.fastq -2 woltka/kneadfilt/*MG3_C9*_2.fastq  -S woltka/outputC9.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_H10*_1.fastq -2 woltka/kneadfilt/*MG3_H10*_2.fastq  -S woltka/outputH10.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_E10*_1.fastq -2 woltka/kneadfilt/*MG3_E10*_2.fastq  -S woltka/outputE10.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_G10*_1.fastq -2 woltka/kneadfilt/*MG3_G10*_2.fastq  -S woltka/outputG10.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_B10*_1.fastq -2 woltka/kneadfilt/*MG3_B10*_2.fastq  -S woltka/outputB10.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_D10*_1.fastq -2 woltka/kneadfilt/*MG3_D10*_2.fastq  -S woltka/outputD10.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_C10*_1.fastq -2 woltka/kneadfilt/*MG3_C10*_2.fastq  -S woltka/outputC10.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_G11*_1.fastq -2 woltka/kneadfilt/*MG3_G11*_2.fastq  -S woltka/outputG11.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_A10*_1.fastq -2 woltka/kneadfilt/*MG3_A10*_2.fastq  -S woltka/outputA10.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_D11*_1.fastq -2 woltka/kneadfilt/*MG3_D11*_2.fastq  -S woltka/outputD11.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_A11*_1.fastq -2 woltka/kneadfilt/*MG3_A11*_2.fastq  -S woltka/outputA11.sam
+bowtie2 -p 8 -x db -1 woltka/kneadfilt/*MG3_B11*_1.fastq -2 woltka/kneadfilt/*MG3_B11*_2.fastq  -S woltka/outputB11.sam
+
+
+
+woltka classify -i wolkta/bowtie2 -o qiime3/ogu.biom
+
+#now installing qiime2
+
+conda activate qiime2-2023.2
+pip install woltka 
+qiime dev refresh-cache
+qiime woltka
+
+qiime tools import --type FeatureData[SeqAlnMap] --input-path bowtie2 --output-path qiime2/table.qza
+
+#doesnt work
+
+qiime tools import \
+  --input-path ogu.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path ogutable.qza
+
+qiime feature-table summarize \
+ --i-table ogutable.qza \
+ --o-visualization ogutable.qzv 
+
+  qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny tree.qza \
+  --i-table ogutable.qza \
+  --m-metadata-file metadata.txt \
+  --p-sampling-depth 10000 \
+  --output-dir core-metrics-results-ogutable10k
+
+woltka classify \
+  --input  woltka/bowtie2 \
+  --map    woltka/maps/wolr1_maps/taxonomy/taxid.map \
+  --nodes  woltka/maps/wolr1_maps/taxonomy/nodes.dmp \
+  --names  woltka/maps/wolr1_maps/taxonomy/names.dmp \
+  --rank   phylum,genus,species \
+  --output woltka/qiime2 
+
+xz -z woltka/maps/wolr1_maps/function/uniref/uniref.map
+
+woltka classify \
+  --input  woltka/bowtie2 \
+  --coords woltka/maps/wolr1_maps/function/coords.txt.xz \
+  --map    woltka/maps/wolr1_maps/function/uniref/uniref.map \
+  --map    woltka/maps/wolr1_maps/function/go/process.map.xz \
+  --rank   uniref,process \
+  --output woltka/qiime2 
+
+
+qiime tools import \
+  --input-path genus.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path genustable.qza
+
+qiime taxa barplot \
+  --i-table genustable.qza \
+  --i-taxonomy taxonomy.qza \
+  --o-visualization genustaxa-bar-plots.qzv 
+
+qiime feature-table summarize \
+ --i-table genustable.qza \
+ --o-visualization genustable.qzv 
+
+qiime metadata tabulate \
+  --m-input-file taxonomy.qza \
+  --o-visualization taxonomy.qzv
+
+
+qiime tools import \
+  --input-path uniref.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path unireftable.qza
+
+
+qiime tools import \
+  --input-path process.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path processtable.qza
+
+
+qiime feature-table summarize \
+ --i-table unireftable.qza \
+ --o-visualization unireftable.qzv 
+
+ qiime feature-table summarize \
+ --i-table processtable.qza \
+ --o-visualization processtable.qzv 
+
+
+qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny tree.qza \
+  --i-table unireftable.qza \
+  --m-metadata-file Primate_metadata.txt \
+  --p-sampling-depth 500 \
+  --output-dir core-metrics-results-unireftable500
+
+  qiime diversity core-metrics-phylogenetic \
+  --i-phylogeny tree.qza \
+  --i-table unireftable.qza \
+  --m-metadata-file Primate_metadata.txt \
+  --p-sampling-depth 500 \
+  --output-dir core-metrics-results-unireftable500
+
+  qiime taxa barplot \
+  --m-metadata-file Primate_metadata.txt \
+  --i-table ogutable.qza \
+  --i-taxonomy taxonomy.qza \
+  --o-visualization ogutaxa-bar-plots.qzv 
+
+  qiime diversity beta \
+  --i-table unireftable.qza \
+ --p-metric braycurtis \
+ --o-distance-matrix bray_uniref_distance_matrix.qza
+
+   qiime diversity beta \
+  --i-table unireftable.qza \
+ --p-metric jaccard \
+ --o-distance-matrix jaccard_uniref_distance_matrix.qza
+
+  qiime diversity pcoa \
+  --i-distance-matrix bray_uniref_distance_matrix.qza \
+ --o-pcoa bray_uniref_pcoa.qza
+
+  qiime diversity pcoa \
+  --i-distance-matrix jaccard_uniref_distance_matrix.qza \
+ --o-pcoa jaccard_uniref_pcoa.qza
+
+ qiime emperor plot \
+  --i-pcoa bray_uniref_pcoa.qza \
+  --m-metadata-file Primate_metadata.txt \
+  --o-visualization bray_uniref_emperor.qzv
+
+ qiime emperor plot \
+  --i-pcoa jaccard_uniref_pcoa.qza \
+  --m-metadata-file Primate_metadata.txt \
+  --o-visualization jaccard_uniref_emperor.qzv
+
+
+qiime woltka
+#####remember to add single quotes which escapes anything with brackets if using zsh
+qiime tools import --type 'FeatureData[SeqAlnMap]' --input-path merged.sam --output-path ~/woltka/qiime2/merged_alignment.qza
+
+srun --partition=short --time=04:00:00 -n 2 --mem=24G --pty bash -l
+
+qiime woltka classify \
+  --i-alignment merged_alignment.qza \
+  --p-target-rank pathway \
+  --i-gene-coordinates data/coords.qza \
+  --i-taxon-map data/gene_to_uniref.qza \
+  --i-reference-nodes data/metacyc_nodes.qza \
+  --o-classified-table mergedsam_table.qza
+
+qiime feature-table summarize \
+ --i-table mergedsam_table.qza \
+ --o-visualization mergedsam_table.qzv
+
+woltka collapse -i ~/woltka/qiime2/ogu.biom -m ~/woltka/maps/wolr1_maps/function/kegg/ko.map -o oguko.biom
+
+woltka collapse -i ~/woltka/qiime2/process.biom -m ~/woltka/maps/wolr1_maps/function/uniref/uniref.map -o process2uniref.biom
+
+xz -d -v ~/woltka/maps/wolr1_maps/function/kegg/ko.map.xz
+
+woltka collapse -i ~/woltka/qiime2/ogu.biom -m ~/woltka/maps/wolr1_maps/function/kegg/ko.map -o oguko.biom
+
+
+woltka classify \
+--input ~/woltka/bowtie2 \
+--coords ~/woltka/maps/wolr1_maps/proteins/coords.txt.xz \
+--output ~/woltka/qiime2/gene.biom
+
+qiime tools import \
+  --input-path ~/woltka/qiime2/gene.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path ~/woltka/qiime2/genetable.qza
+
+qiime feature-table summarize \
+ --i-table genetable.qza \
+ --m-sample-metadata-file metadata.txt \
+ --o-visualization gene_table.qzv
+
+
+
+ woltka collapse -i ~/woltka/qiime2/gene.biom -m ~/woltka/maps/function/kegg/ko.map -o gene2ko.biom
+
+
+ woltka collapse -i ~/woltka/qiime2/gene.biom -m ~/woltka/maps/function/go/function.map.xz -o gene2gofunction.biom
+
+ woltka collapse -i ~/woltka/qiime2/gene.biom -m ~/woltka/maps/function/go/all.map.xz -o gene2gofunction.biom
+
+ biom summarize-table -i gene.biom -o gene_table_summary.txt
+ head gene_table_summary.txt
+
+ #trying metacyc with --names to get descriptors
+
+ woltka classify \
+--input ~/woltka/bowtie2 \
+--coords ~/woltka/maps/proteins/coords.txt.xz \
+--names ~/woltka/maps/function/kegg/ko.name \
+--output ~/woltka/qiime2/koname.biom
+
+qiime tools import \
+  --input-path ~/woltka/qiime2/koname.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path ~/woltka/qiime2/koname.qza
+
+qiime feature-table summarize \
+  --i-table koname.qza \
+  --m-sample-metadata-file metadata.txt \
+  --o-visualization koname_table.qzv
+
+#cant see on qiime2 view.. trying without coords
+
+ woltka classify \
+--input ~/woltka/bowtie2 \
+--names ~/woltka/maps/function/kegg/ko.name \
+--output ~/woltka/qiime2/koname2.biom
+
+qiime tools import \
+  --input-path ~/woltka/qiime2/koname2.biom \
+  --type 'FeatureTable[Frequency]' \
+  --input-format BIOMV210Format \
+  --output-path ~/woltka/qiime2/koname2.qza
+
+qiime feature-table summarize \
+  --i-table koname2.qza \
+  --m-sample-metadata-file metadata.txt \
+  --o-visualization koname2_table.qzv
+
+biom convert -i ~/woltka/qiime2/process.biom -o ~/woltka/qiime2/process.tsv --to-tsv
+
+qiime composition add-pseudocount \
+  --i-table ogutable.qza \
+  --o-composition-table comp-ogutable.qza
+
+
+qiime composition ancom \
+    --i-table comp-ogutable.qza \
+    --m-metadata-file Primate_metadata.txt \
+    --m-metadata-column human \
+    --o-visualization ancom-human.qzv
+
+qiime composition ancom \
+    --i-table comp-ogutable.qza \
+    --m-metadata-file Primate_metadata.txt \
+    --m-metadata-column gorilla \
+    --o-visualization ancom-gorilla.qzv
+
+qiime composition ancom \
+    --i-table comp-ogutable.qza \
+    --m-metadata-file Primate_metadata.txt \
+    --m-metadata-column chimp \
+    --o-visualization ancom-chimp.qzv
+
+#trying species
+
+qiime taxa collapse \
+  --i-table ogutable.qza \
+  --i-taxonomy taxonomy.qza \
+  --p-level 6 \
+  --o-collapsed-table ogugenus-table.qza
+
+qiime composition add-pseudocount \
+  --i-table ogugenus-table.qza \
+  --o-composition-table comp-gut-table-genus.qza
+
+qiime composition ancom \
+  --i-table comp-gut-table-genus.qza \
+  --m-metadata-file Primate_metadata.txt \
+  --m-metadata-column human \
+  --o-visualization ancom-genus-human.qzv
+
+qiime composition ancom \
+    --i-table comp-gut-table-genus.qza \
+    --m-metadata-file Primate_metadata.txt \
+    --m-metadata-column gorilla \
+    --o-visualization ancom-gorilla-genus.qzv
+
+qiime composition ancom \
+    --i-table comp-gut-table-genus.qza \
+    --m-metadata-file Primate_metadata.txt \
+    --m-metadata-column chimp \
+    --o-visualization ancom-chimp-genus.qzv
+
+woltka collapse -i ~/woltka/qiime2/gene.biom -m ~/woltka/maps/function/go/function.map.xz -o gene2gofunction2m.biom
+
+woltka collapse -i ~/woltka/qiime3/gene.biom -m ~/woltka/maps/function/metacyc/protein.map.xz -n ~/woltka/maps/function/metacyc/protein_name.txt -o gene2metacyc.biom
+
+biom convert -i ~/woltka/qiime2/gene2metacyc.biom -o ~/woltka/qiime2/gene2metacyc.tsv --to-tsv
+
+#trying to stratify first and then go all the way to type
+
+woltka classify -i ~/woltka/bowtie2 --lineage ~/woltka/maps/taxonomy/lineages.txt -r genus -o ~/woltka/qiime2/genus.biom -u ~/woltka/maps_dir
+
+woltka classify -i ~/woltka/bowtie2 -c ~/woltka/maps/proteins/coords.txt.xz -m ~/woltka/maps/function/metacyc/protein.map.xz -r protein -t ~/woltka/maps/map_dir -o protein_genus.biom
+
+biom convert -i ~/woltka/qiime2/protein_genus.biom -o ~/woltka/qiime2/protein_genus.tsv --to-tsv
+
+#trying same as above but with piping 
+
+
+
+head ~/woltka/qiime2/protein_genus.tsv
+
+#now trying same as above but ranking higher up function?
+
+woltka classify -i ~/woltka/bowtie2 -c ~/woltka/maps/proteins/coords.txt.xz -m ~/woltka/maps/function/metacyc/protein.map.xz -r pathway -t ~/woltka/maps/map_dir -n ~/woltka/maps/function/metacyc/pathway_name.txt -o pathway_genus.biom
+
+ls maps/function/metacyc
+
+woltka collapse -i ~/woltka/qiime2/protein_genus.biom -m ~/woltka/maps/function/metacyc/protein-to-enzrxn.txt -n ~/woltka/maps/function/metacyc/enzrxn_name.txt  -o progenus2reaction.biom
+
+
+
+
+#Example below of how to get to type
+# protein to enzrxn (enzymatic reaction):
+woltka collapse -i ~/woltka/qiime2/gene2metacyc.biom -m ~/woltka/maps/function/metacyc/protein-to-enzrxn.txt -n ~/woltka/maps/function/metacyc/enzrxn_name.txt -o enzrxn.biom
+# enzrxn to reaction:
+woltka collapse -i enzrxn.biom -m ~/woltka/maps/function/metacyc/enzrxn-to-reaction.txt -n ~/woltka/maps/function/metacyc/reaction_name.txt -o reaction.biom
+# reaction to pathway:
+woltka collapse -i reaction.biom -m ~/woltka/maps/function/metacyc/reaction-to-pathway.txt -n ~/woltka/maps/function/metacyc/pathway_name.txt -o pathway.biom
+# pathway to super pathway:
+woltka collapse -i pathway.biom -m ~/woltka/maps/function/metacyc/pathway-to-super_pathway.txt -n ~/woltka/maps/function/metacyc/pathway_name.txt -o super_pathway.biom
+# super pathway (or pathway) to pathway type:
+woltka collapse -i super_pathway.biom -m ~/woltka/maps/function/metacyc/pathway_type.txt -n ~/woltka/maps/function/metacyc/all_class_name.txt -o pathway_type.biom
+
+ls ../maps/function/metacyc/
+
+#so now trying the above pathway swithcing but with stratifying at f -2
+# protein to enzrxn (enzymatic reaction):
+woltka collapse -i ~/woltka/qiime2/protein_genus.biom -f 2 -m ~/woltka/maps/function/metacyc/protein-to-enzrxn.txt -n ~/woltka/maps/function/metacyc/enzrxn_name.txt -o enzrxn_genus.biom
+# enzrxn to reaction:
+woltka collapse -i enzrxn_genus.biom -f 2 -m ~/woltka/maps/function/metacyc/enzrxn-to-reaction.txt -n ~/woltka/maps/function/metacyc/reaction_name.txt -o reaction_genus.biom
+# reaction to pathway:
+woltka collapse -i reaction_genus.biom -f 2 -m ~/woltka/maps/function/metacyc/reaction-to-pathway.txt -n ~/woltka/maps/function/metacyc/pathway_name.txt -o pathway_genus.biom
+# pathway to super pathway:
+woltka collapse -i pathway_genus.biom -f 2 -m ~/woltka/maps/function/metacyc/pathway-to-super_pathway.txt -n ~/woltka/maps/function/metacyc/pathway_name.txt -o super_pathway_genus.biom
+# super pathway (or pathway) to pathway type:
+woltka collapse -i super_pathway_genus.biom -f 2 -m ~/woltka/maps/function/metacyc/pathway_type.txt -n ~/woltka/maps/function/metacyc/all_class_name.txt -o pathway_type_genus.biom
+
+#worked! now testing what it has inside
+
+biom convert -i ~/woltka/qiime2/enzrxn_genus.biom -o ~/woltka/qiime2/enzrxn_genus.tsv --to-tsv 
+
+biom convert -i ~/woltka/qiime2/pathway_type_genus.biom -o ~/woltka/qiime2/pathway_type_genus.tsv --to-tsv 
+
+head ~/woltka/qiime2/pathway_type_genus.tsv
+
+head ~/woltka/maps/function/metacyc/all_class_name.txt
+
+biom convert -i ~/woltka/qiime2/pathway_genus.biom -o ~/woltka/qiime2/pathway_genus.biom.tsv --to-tsv 
+
+biom convert -i ~/woltka/qiime2/super_pathway_genus.biom -o ~/woltka/qiime2/super_pathway_genus. --to-tsv 
+
+
+
+
+
+
+#now trying species ..unifnished check below to finish this
+
+woltka classify -i ~/woltka/bowtie2 --lineage ~/woltka/maps/taxonomy/lineages.txt -r species -o ~/woltka/qiime2/species.biom -u ~/woltka/maps_dir
+
+woltka classify -i ~/woltka/bowtie2 -c ~/woltka/maps/proteins/coords.txt.xz -m ~/woltka/maps/function/metacyc/protein.map.xz -r protein -t ~/woltka/maps/map_dir -o protein_genus.biom
+
+
+#trying the accurate genome tax assignment which apparently doesnt have tax strings added to species names
+
+woltka classify \
+  -i ~/woltka/bowtie2 \
+  --map ~/woltka/maps/taxonomy/taxid.map \
+  --nodes ~/woltka/maps/taxonomy/nodes.dmp \
+  --names ~/woltka/maps/taxonomy/names.dmp \
+  --rank species \
+  --name-as-id \
+  --outmap ~/woltka/maps/map_species_dir \
+  -o ~/woltka/maps/map_species_dir/species_taxonomy.biom
+
+biom convert -i ~/woltka/qiime2/pathway_type.biom -o ~/woltka/qiime2/pathway_type.tsv --to-tsv 
+
+
+#trying to do deseq on kegg pathways so trying to get ko 2 pathway
+#after reading ko directory README I need to run this code and then I can runa script to get ko pathways or higher hiearchies basically from the base ko file
+
+woltka classify \
+  --input  ~/woltka/bowtie2 \
+  --coords ~/woltka/maps/proteins/coords.txt.xz \
+  --map    ~/woltka/maps/function/uniref/uniref.map \
+  --map    ~/woltka/maps/function/kegg/ko.map \
+  --rank   ko \
+  --output ~/woltka/qiime3/kegg.tsv
+
+wget https://github.com/qiyunzhu/utils/blob/main/kegg_query.py
+
+python kegg_query.py kegg.tsv
+
+woltka collapse -i kegg.tsv -m ko-to-pathway.txt -o kegg2pathway.tsv
+
+woltka collapse -i kegg.tsv -m ko_name.txt -o kegg2koname.tsv
+
+woltka collapse -i kegg2pathway.tsv -m pathway-to-class.txt -o keggpath2class.tsv
+
+#trying to make pathway type table with species stratification
+
+# super pathway (or pathway) to pathway type:
+woltka collapse -i super_pathway_genus.biom -f 1 -m ~/woltka/maps/function/metacyc/pathway_type.txt -n ~/woltka/maps/function/metacyc/all_class_name.txt -o pathway_type_species.biom
+
+#doesnt work with trying this
+
+woltka classify -i ~/woltka/bowtie2 -c ~/woltka/maps/proteins/coords.txt.xz -m ~/woltka/maps/function/metacyc/protein.map.xz -r protein -t ~/woltka/maps/map_species_dir -o ~/woltka/qiime2/protein_species.biom
+
+biom convert -i ~/woltka/qiime2/protein_species.biom -o ~/woltka/qiime2/protein_species.tsv --to-tsv
+
+head ~/woltka/qiime2/protein_species.tsv
+
+woltka classify \
+  -i ~/woltka/bowtie2 \
+  --map ~/woltka/maps/taxonomy/taxid.map \
+  --nodes ~/woltka/maps/taxonomy/nodes.dmp \
+  --names ~/woltka/maps/taxonomy/names.dmp \
+  --rank species \
+  --name-as-id \
+  --add-lineage \
+  --outmap ~/woltka/maps/map_full_species_dir \
+  -o ~/woltka/maps/map_species_dir/fullspecies_taxonomy.biom
+
+
+
+
+  
+
+
+
+
