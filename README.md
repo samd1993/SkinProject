@@ -2,6 +2,9 @@
 
 The associated code for the paper titled "The human facial skin microbiome is unique compared to that of other hominids" in mSystems (May 2025, in press). 
 
+<img width="468" alt="image" src="https://github.com/user-attachments/assets/b14266cc-b108-482e-832c-2cdf0abd82d1" />
+
+
 Abstract:
 
 The human facial skin microbiome is remarkably similar across all people sampled to date, dominated by facultative anaerobe Cutibacterium. The origin of this genus is unknown, with no close relatives currently described from samples of primate skin. This apparent human-specific bacterial taxon could reflect the unique nature of human skin, which is significantly more oily than that of our closest primate relatives. However, previous studies have not sampled the facial skin microbiome of our closest primates. Here, we profiled the skin microbiome of zoo-housed chimpanzees (Pan troglodytes), and gorillas (Gorilla gorilla gorilla), alongside their human care staff, using both 16S and shotgun sequencing. We showed that facial skin microbiomes differ significantly across host species, with humans having the lowest diversity and most unique community among the three species. We were unable to find a close relative of Cutibacterium on either chimpanzee or gorilla facial skin, consistent with human-specificity. Hominid skin microbiome functional profiles were more functionally similar compared to their taxonomic profiles. However, we still found notable functional differences including lower proportions of fatty acid biosynthesis on humans, consistent with microbes’ reliance on host-derived lipids. Our study highlights the uniqueness of the human facial skin microbiome and supports a horizontal acquisition of its dominant resident from a yet unknown source.
